@@ -4,12 +4,15 @@ import { CreateTaskDto } from "./dto/create-task.dto";
 import { TaskStatus } from "./task-status.enum";
 import { NotFoundException } from "@nestjs/common";
 import { GetTasksFilterDto } from "./dto/get-tasks-filter.dto";
+import { User } from "src/auth/user.entity";
 
 @EntityRepository(Task)
 export class TaskRepository extends Repository<Task> {
-    async getTasks(filterDto: GetTasksFilterDto): Promise<Task[]> {
+    async getTasks(filterDto: GetTasksFilterDto, user: User): Promise<Task[]> {
         const { status, search } = filterDto;
         const query = this.createQueryBuilder('task');
+
+        query.where('task.userId = :userId', { userId: user.id });
 
         if (status) {
             query.andWhere('task.status = :status', { status })
@@ -23,14 +26,17 @@ export class TaskRepository extends Repository<Task> {
         return tasks;
     }
 
-    async createTask(createTaskDto: CreateTaskDto): Promise<Task> {
+    async createTask(createTaskDto: CreateTaskDto, user: User): Promise<Task> {
         const { title, description } = createTaskDto;
         
         const task = new Task();
         task.title = title;
         task.description = description;
         task.status = TaskStatus.OPEN;
+        task.user = user;
         await task.save();
+
+        delete task.user; // just removes user from the return, not the entity.
 
         return task;
     }
@@ -39,8 +45,8 @@ export class TaskRepository extends Repository<Task> {
     //     return await task.remove();
     // }
 
-    async deleteTask(id: number): Promise<void> {
-        const result = await this.delete(id);
+    async deleteTask(id: number, user: User): Promise<void> {
+        const result = await this.delete({ id, userId: user.id }); // delete does not require "where" because id is unique
 
         if (result.affected === 0) {
             throw new NotFoundException(`Task with ID "${id}" not found`);
