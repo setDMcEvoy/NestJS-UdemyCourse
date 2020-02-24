@@ -1,0 +1,5 @@
+server:
+  origin: 'https://google.com'
+
+db:
+  synchronize: false
