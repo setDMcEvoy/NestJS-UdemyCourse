@@ -15,7 +15,7 @@ export class UserRepository extends Repository<User> {
         //     // throw error
         // }
 
-        const user = new User();
+        const user = this.create(); // equivalent to new User(); because this is a User repository // new User();
         user.username = username;
         user.salt = await bcrypt.genSalt();
         user.password = await this.hashPassword(password, user.salt);
